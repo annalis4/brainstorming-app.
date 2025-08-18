@@ -1,10 +1,15 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from supabase import create_client
-import os
+import logging
+from fastapi import FastAPI
 
 app = FastAPI()
+
+@app.middleware("http")
+async def log_exceptions(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        logging.error(f"Unhandled error: {e}", exc_info=True)
+        raise
 
 import os
 from supabase import create_client 
