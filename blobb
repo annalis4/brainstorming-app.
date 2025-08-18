@@ -1,2 +1,4 @@
 git clone https://github.com/tuo-utente/brainstorming-app.git
 cd brainstorming-app
+python3 -m venv venv
+source venv/bin/activate
