@@ -2,3 +2,6 @@ flask
 supabase
 python-dotenv
 gunicorn
+git add .
+git commit -m "Aggiunta struttura base Flask"
+git push origin main
