@@ -1,40 +1,40 @@
-from flask import Flask, render_template, request, jsonify
-from supabase import create_client
+from flask import Flask, request, jsonify, render_template
+from supabase import create_client, Client
 import os
 
+# Inizializza Flask
 app = Flask(__name__)
 
-# --- Integrazione Supabase ---
-url = os.getenv("SUPABASE_URL", "https://TUO-PROGETTO.supabase.co")
-key = os.getenv("SUPABASE_KEY", "LA-TUA-ANON-KEY")
-supabase = create_client(url, key)
+# Configura Supabase con variabili d'ambiente
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# --- Rotte ---
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Devi impostare SUPABASE_URL e SUPABASE_KEY come variabili d'ambiente.")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Rotta principale: mostra la pagina con il form
 @app.route("/")
-def home():
-    """Mostra la pagina principale con la lavagna"""
+def index():
     return render_template("index.html")
 
+# Rotta per inserire una nuova idea
 @app.route("/idea", methods=["POST"])
 def add_idea():
-    """Aggiunge una nuova idea"""
     data = request.get_json()
-    content = data.get("content")
-    if not content:
-        return jsonify({"status": "error", "message": "contenuto mancante"}), 400
-    
-    res = supabase.table("ideas").insert({"content": content}).execute()
-    return jsonify({"status": "ok", "idea": res.data})
+    content = data.get("content", "").strip()
+    if content:
+        res = supabase.table("ideas").insert({"content": content}).execute()
+        return jsonify({"status": "ok", "idea": res.data})
+    return jsonify({"status": "error", "message": "Nessun contenuto ricevuto"}), 400
 
+# Rotta per mostrare tutte le idee
 @app.route("/ideas", methods=["GET"])
 def list_ideas():
-    """Ritorna tutte le idee"""
-    res = supabase.table("ideas").select("*").order("created_at", desc=True).execute()
+    res = supabase.table("ideas").select("*").order("id", desc=True).execute()
     return jsonify({"ideas": res.data})
 
-# --- Avvio locale ---
 if __name__ == "__main__":
+    # Avvio in locale (su Render useremo gunicorn)
     app.run(host="0.0.0.0", port=5000, debug=True)
-git add .
-git commit -m "Aggiunta struttura base Flask"
-git push origin main
