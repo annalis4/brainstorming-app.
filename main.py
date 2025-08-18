@@ -29,4 +29,3 @@ async def add_idea(request: Request):
 def list_ideas():
     res = supabase.table("ideas").select("*").execute()
     return {"ideas": res.data}
-git push
