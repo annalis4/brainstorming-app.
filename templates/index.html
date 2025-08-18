@@ -1,78 +1,38 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Lavagna Idee</title>
-</head>
-<body>
-  <h1>Brainstorming</h1>
-  <form id="ideaForm">
-    <input type="text" id="content" placeholder="Scrivi la tua idea" required>
-    <button type="submit">Invia</button>
-  </form>
-
-  <h2>Idee raccolte:</h2>
-  <ul id="ideasList"></ul>
-
-  <script>
-    async function loadIdeas() {
-      const res = await fetch("/ideas");
-      const data = await res.json();
-      const list = document.getElementById("ideasList");
-      list.innerHTML = "";
-      data.ideas.forEach(i => {
-        const li = document.createElement("li");
-        li.textContent = i.content;
-        list.appendChild(li);
-      });
-    }
-
-    document.getElementById("ideaForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const content = document.getElementById("content").value;
-      await fetch("/idea", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({content})
-      });
-      document.getElementById("content").value = "";
-      loadIdeas();
-    };
-
-    loadIdeas();
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Lavagna Idee</title>
+  <title>Lavagna di Brainstorming</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; }
     h1 { color: #333; }
     form { margin-bottom: 20px; }
-    input[type="text"] { 
-      width: 300px; 
-      padding: 8px; 
-      border-radius: 6px; 
-      border: 1px solid #ccc; 
+    input[type="text"], textarea {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
-    button { 
-      padding: 8px 16px; 
-      border: none; 
-      border-radius: 6px; 
-      background: #007bff; 
-      color: white; 
-      cursor: pointer; 
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
     }
     button:hover { background: #0056b3; }
     ul { list-style: none; padding: 0; }
-    li { 
-      background: white; 
-      margin: 6px 0; 
-      padding: 10px; 
-      border-radius: 6px; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    li {
+      background: white;
+      margin: 6px 0;
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
   </style>
 </head>
@@ -81,7 +41,7 @@
 
   <!-- Form per inserire la frase -->
   <form id="ideaForm">
-    <input type="text" id="content" placeholder="Scrivi la tua idea qui..." required>
+    <textarea id="content" rows="3" placeholder="Scrivi la tua idea qui..." required></textarea><br>
     <button type="submit">Invia</button>
   </form>
 
@@ -89,7 +49,7 @@
   <ul id="ideasList"></ul>
 
   <script>
-    // Funzione per caricare le idee
+    // Carica tutte le idee
     async function loadIdeas() {
       const res = await fetch("/ideas");
       const data = await res.json();
