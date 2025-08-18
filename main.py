@@ -1,50 +1,37 @@
-import logging
-import os
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from flask import Flask, render_template, request, jsonify
 from supabase import create_client
+import os
 
-logging.basicConfig(level=logging.INFO)
+app = Flask(__name__)
 
-app = FastAPI()
-
-@app.middleware("http")
-async def log_exceptions(request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        logging.error(f"Unhandled error: {e}", exc_info=True)
-        raise
-
-# Supabase client
-url = os.getenv("SUPABASE_URL", "https://cmqiuyqpzcdwgqgkgmdc.supabase.co")
-key = os.getenv("SUPABASE_KEY", "SUPER_SECRET_KEY")  # Don't hardcode in production!
+# --- Integrazione Supabase ---
+url = os.getenv("SUPABASE_URL", "https://TUO-PROGETTO.supabase.co")
+key = os.getenv("SUPABASE_KEY", "LA-TUA-ANON-KEY")
 supabase = create_client(url, key)
 
-# Templates
-templates = Jinja2Templates(directory="templates")
+# --- Rotte ---
+@app.route("/")
+def home():
+    """Mostra la pagina principale con la lavagna"""
+    return render_template("index.html")
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.post("/idea")
-async def add_idea(request: Request):
-    data = await request.json()
+@app.route("/idea", methods=["POST"])
+def add_idea():
+    """Aggiunge una nuova idea"""
+    data = request.get_json()
     content = data.get("content")
-    try:
-        res = supabase.table("ideas").insert({"content": content}).execute()
-        return {"status": "ok", "idea": res.data}
-    except Exception as e:
-        logging.error(f"Failed to add idea: {e}")
-        return {"status": "error", "detail": str(e)}
+    if not content:
+        return jsonify({"status": "error", "message": "contenuto mancante"}), 400
+    
+    res = supabase.table("ideas").insert({"content": content}).execute()
+    return jsonify({"status": "ok", "idea": res.data})
 
-@app.get("/ideas")
-async def list_ideas():
-    try:
-        res = supabase.table("ideas").select("*").execute()
-        return {"ideas": res.data}
-    except Exception as e:
-        logging.error(f"Failed to list ideas: {e}")
-        return {"status": "error", "detail": str(e)}
+@app.route("/ideas", methods=["GET"])
+def list_ideas():
+    """Ritorna tutte le idee"""
+    res = supabase.table("ideas").select("*").order("created_at", desc=True).execute()
+    return jsonify({"ideas": res.data})
+
+# --- Avvio locale ---
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
