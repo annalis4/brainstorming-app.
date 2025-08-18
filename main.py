@@ -35,3 +35,6 @@ def list_ideas():
 # --- Avvio locale ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+git add .
+git commit -m "Aggiunta struttura base Flask"
+git push origin main
