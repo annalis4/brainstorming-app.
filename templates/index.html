@@ -1,55 +1,111 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Brainstorming App</title>
+  <meta charset="UTF-8">
+  <title>Brainstorming App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      overflow: hidden;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 20px;
+    }
+    #idea-form {
+      text-align: center;
+      margin: 20px;
+    }
+    #idea-input {
+      width: 400px;
+      height: 80px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #ideas-container {
+      position: relative;
+      width: 100vw;
+      height: 80vh;
+      overflow: hidden;
+    }
+    .idea {
+      position: absolute;
+      background: white;
+      padding: 10px 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      font-size: 16px;
+      max-width: 250px;
+      word-wrap: break-word;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
 </head>
 <body>
-    <h1>Inserisci la tua idea</h1>
-    <form id="idea-form">
-        <textarea id="idea-input" rows="5" cols="60" placeholder="Scrivi qui la tua idea senza limiti..."></textarea><br>
-        <button type="submit">Invia</button>
-    </form>
+  <h1>Brainstorming</h1>
+  <form id="idea-form">
+    <textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
+    <button type="submit">Invia</button>
+  </form>
 
-    <h2>Idee condivise</h2>
-    <ul id="ideas-list"></ul>
+  <div id="ideas-container"></div>
 
-    <script>
-        const form = document.getElementById("idea-form");
-        const input = document.getElementById("idea-input");
-        const list = document.getElementById("ideas-list");
+  <script>
+    const form = document.getElementById("idea-form");
+    const input = document.getElementById("idea-input");
+    const container = document.getElementById("ideas-container");
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const content = input.value.trim();
-            if (content) {
-                const res = await fetch("/idea", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content }),
-                });
-                const data = await res.json();
-                if (data.status === "ok") {
-                    input.value = "";
-                    loadIdeas();
-                } else {
-                    alert(data.message);
-                }
-            }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const content = input.value.trim();
+      if (content) {
+        const res = await fetch("/idea", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
         });
-
-        async function loadIdeas() {
-            const res = await fetch("/ideas");
-            const data = await res.json();
-            list.innerHTML = "";
-            data.ideas.forEach(idea => {
-                const li = document.createElement("li");
-                li.textContent = idea.content;
-                list.appendChild(li);
-            });
+        const data = await res.json();
+        if (data.status === "ok") {
+          input.value = "";
+          loadIdeas();
+        } else {
+          alert(data.message);
         }
+      }
+    });
 
-        loadIdeas();
-    </script>
+    async function loadIdeas() {
+      const res = await fetch("/ideas");
+      const data = await res.json();
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      data.ideas.forEach(idea => {
+        const div = document.createElement("div");
+        div.className = "idea";
+        div.textContent = idea.content;
+
+        // Posizione casuale
+        const x = Math.random() * (width - 260);  // margine per non uscire dallo schermo
+        const y = Math.random() * (height - 100);
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+
+        container.appendChild(div);
+      });
+    }
+
+    loadIdeas();
+    setInterval(loadIdeas, 5000); // aggiorna ogni 5s
+  </script>
 </body>
 </html>
