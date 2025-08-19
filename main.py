@@ -49,5 +49,11 @@ def save_position():
     supabase.table("ideas").update({"pos_x": x, "pos_y": y}).eq("id", idea_id).execute()
     return jsonify({"status": "ok"})
 
+# Reset lavagna
+@app.route("/reset", methods=["POST"])
+def reset():
+    supabase.table("ideas").delete().neq("id", 0).execute()
+    return jsonify({"status": "ok", "message": "Lavagna resettata"})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
