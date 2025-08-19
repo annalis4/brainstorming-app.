@@ -16,16 +16,20 @@ def index():
 @app.route("/idea", methods=["POST"])
 def add_idea():
     data = request.get_json()
-    content = data.get("content", "").strip()
+    content = data.get("content", "").strip().lower()  # normalizza a minuscolo
     if not content:
         return jsonify({"status": "error", "message": "Nessun contenuto ricevuto"}), 400
 
-    # Controlla se già esiste
+    # Verifica se già esiste
     existing = supabase.table("ideas").select("*").eq("content", content).execute().data
     if existing:
-        return jsonify({"status": "ok", "idea": existing[0]})
+        idea = existing[0]
+        new_count = idea["count"] + 1
+        supabase.table("ideas").update({"count": new_count}).eq("id", idea["id"]).execute()
+        idea["count"] = new_count
+        return jsonify({"status": "ok", "idea": idea})
 
-    # Inserimento iniziale senza posizione
+    # Inserisci nuova idea senza posizione
     res = supabase.table("ideas").insert({"content": content}).execute()
     return jsonify({"status": "ok", "idea": res.data[0]})
 
