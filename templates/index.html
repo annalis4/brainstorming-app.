@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Brainstorm Cloud Globale</title>
+<title>Brainstorming Cloud Globale</title>
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f9f9f9; overflow:hidden; }
 h1 { text-align:center; margin-top:20px; }
@@ -26,7 +26,6 @@ h1 { text-align:center; margin-top:20px; }
 const form = document.getElementById("idea-form");
 const input = document.getElementById("idea-input");
 const container = document.getElementById("ideas-container");
-const positions = {}; // per memoria locale collisioni
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -46,6 +45,7 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+// Controllo collisione
 function checkCollision(x, y, width, height, placed){
   return placed.some(p=>{
     return !(x+width < p.x || x > p.x+p.width || y+height < p.y || y > p.y+p.height);
@@ -88,7 +88,7 @@ async function loadIdeas(){
           x = Math.random() * (width - boxWidth - 20);
           y = Math.random() * (height - boxHeight - 20);
           tries++;
-          if(tries>1000) break;
+          if(tries>2000) break;
         } while(checkCollision(x,y,boxWidth,boxHeight,placed));
 
         // salva posizione su Supabase
@@ -98,6 +98,7 @@ async function loadIdeas(){
           body:JSON.stringify({id:idea.id,x,y})
         });
       }
+
       div.style.left = x + "px";
       div.style.top = y + "px";
       placed.push({x,y,width:div.offsetWidth,height:div.offsetHeight});
