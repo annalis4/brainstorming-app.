@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify, render_template
 from supabase import create_client, Client
 import os
-import random
 
 app = Flask(__name__)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://cmqiuyqpzcdwgqgkgmdc.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcWl1eXFwemNkd2dxZ2tnbWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MjAyNDgsImV4cCI6MjA3MTA5NjI0OH0.JyqSexwA9INcc3HjNemLUhveCQzY-AAplD8YHACkZP0")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -26,8 +25,7 @@ def add_idea():
     if existing:
         return jsonify({"status": "ok", "idea": existing[0]})
 
-    # Genera posizione casuale
-    # Inizialmente lascia x, y a null, il frontend le aggiornerà
+    # Inserimento iniziale senza posizione
     res = supabase.table("ideas").insert({"content": content}).execute()
     return jsonify({"status": "ok", "idea": res.data[0]})
 
