@@ -1,159 +1,116 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Brainstorming Cloud</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f9f9f9;
-      overflow: hidden;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 20px;
-    }
-    #idea-form {
-      text-align: center;
-      margin: 20px;
-    }
-    #idea-input {
-      width: 400px;
-      height: 80px;
-      padding: 10px;
-      font-size: 16px;
-    }
-    #ideas-container {
-      position: relative;
-      width: 100vw;
-      height: 80vh;
-      overflow: hidden;
-    }
-    .idea {
-      position: absolute;
-      background: white;
-      padding: 6px 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      font-weight: bold;
-      word-wrap: break-word;
-      max-width: 300px;
-      text-align: center;
-      transition: font-size 0.5s ease;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.8); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Brainstorm Cloud Globale</title>
+<style>
+body { font-family: Arial; margin:0; padding:0; background:#f9f9f9; overflow:hidden; }
+h1 { text-align:center; margin-top:20px; }
+#idea-form { text-align:center; margin:20px; }
+#idea-input { width:400px; height:80px; padding:10px; font-size:16px; }
+#ideas-container { position:relative; width:100vw; height:80vh; overflow:hidden; }
+.idea { position:absolute; background:white; padding:6px 12px; border-radius:12px;
+       box-shadow:0 4px 8px rgba(0,0,0,0.15); font-weight:bold; word-wrap:break-word;
+       max-width:300px; text-align:center; transition:font-size 0.5s ease; }
+</style>
 </head>
 <body>
-  <h1>Brainstorming Cloud</h1>
-  <form id="idea-form">
-    <textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
-    <button type="submit">Invia</button>
-  </form>
+<h1>Brainstorming Cloud Globale</h1>
+<form id="idea-form">
+<textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
+<button type="submit">Invia</button>
+</form>
+<div id="ideas-container"></div>
 
-  <div id="ideas-container"></div>
+<script>
+const form = document.getElementById("idea-form");
+const input = document.getElementById("idea-input");
+const container = document.getElementById("ideas-container");
+const positions = {}; // per memoria locale collisioni
 
-  <script>
-    const form = document.getElementById("idea-form");
-    const input = document.getElementById("idea-input");
-    const container = document.getElementById("ideas-container");
-
-    // Posizioni assegnate una sola volta
-    const positions = {};
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const content = input.value.trim();
-      if (content) {
-        const res = await fetch("/idea", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
-        });
-        const data = await res.json();
-        if (data.status === "ok") {
-          input.value = "";
-          loadIdeas();
-        } else {
-          alert(data.message);
-        }
-      }
-    });
-
-    function checkCollision(x, y, width, height, placed) {
-      return placed.some(p => {
-        return !(x + width < p.x || x > p.x + p.width || y + height < p.y || y > p.y + p.height);
-      });
-    }
-
-    async function loadIdeas() {
-      const res = await fetch("/ideas");
-      const data = await res.json();
-
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-
-      const freq = {};
-      data.ideas.forEach(idea => {
-        const phrase = idea.content.trim();
-        if (phrase) {
-          freq[phrase] = (freq[phrase] || 0) + 1;
-        }
-      });
-
-      const phrases = Object.keys(freq);
-      if (phrases.length === 0) return;
-
-      const maxFreq = Math.max(...Object.values(freq));
-      const minFreq = Math.min(...Object.values(freq));
-
-      const placed = [];
-
-      phrases.forEach(phrase => {
-        let div = document.getElementById("idea-" + phrase);
-
-        if (!div) {
-          div = document.createElement("div");
-          div.className = "idea";
-          div.textContent = phrase;
-          div.id = "idea-" + phrase;
-
-          container.appendChild(div);
-
-          const rect = div.getBoundingClientRect();
-          const boxWidth = rect.width || 100;
-          const boxHeight = rect.height || 40;
-
-          let x, y, tries = 0;
-          do {
-            x = Math.random() * (width - boxWidth - 20);
-            y = Math.random() * (height - boxHeight - 20);
-            tries++;
-            if (tries > 1000) break;
-          } while (checkCollision(x, y, boxWidth, boxHeight, placed));
-
-          positions[phrase] = { x, y, width: boxWidth, height: boxHeight };
-
-          div.style.left = `${x}px`;
-          div.style.top = `${y}px`;
-
-          placed.push({ x, y, width: boxWidth, height: boxHeight });
-        }
-
-        // Aggiorna solo la dimensione del font (non la posizione!)
-        const size = 14 + (freq[phrase] - minFreq) / (maxFreq - minFreq || 1) * 40;
-        div.style.fontSize = `${size}px`;
-      });
-    }
-
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const content = input.value.trim();
+  if (!content) return;
+  const res = await fetch("/idea", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content })
+  });
+  const data = await res.json();
+  if (data.status === "ok") {
+    input.value = "";
     loadIdeas();
-    setInterval(loadIdeas, 5000); // aggiorna ogni 5s
-  </script>
+  } else {
+    alert(data.message);
+  }
+});
+
+function checkCollision(x, y, width, height, placed){
+  return placed.some(p=>{
+    return !(x+width < p.x || x > p.x+p.width || y+height < p.y || y > p.y+p.height);
+  });
+}
+
+async function loadIdeas(){
+  const res = await fetch("/ideas");
+  const data = await res.json();
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  const freq = {};
+  const placed = [];
+
+  data.ideas.forEach(idea => {
+    freq[idea.content] = (freq[idea.content] || 0) + 1;
+  });
+
+  const maxFreq = Math.max(...Object.values(freq));
+  const minFreq = Math.min(...Object.values(freq));
+
+  for(let idea of data.ideas){
+    const phrase = idea.content.trim();
+    if (!phrase) continue;
+    let div = document.getElementById("idea-" + idea.id);
+    if(!div){
+      div = document.createElement("div");
+      div.className = "idea";
+      div.textContent = phrase;
+      div.id = "idea-" + idea.id;
+      container.appendChild(div);
+
+      // Calcola posizione se non presente
+      let x = idea.pos_x, y = idea.pos_y;
+      if (x===null || y===null){
+        let boxWidth = div.offsetWidth || 100;
+        let boxHeight = div.offsetHeight || 40;
+        let tries = 0;
+        do{
+          x = Math.random() * (width - boxWidth - 20);
+          y = Math.random() * (height - boxHeight - 20);
+          tries++;
+          if(tries>1000) break;
+        } while(checkCollision(x,y,boxWidth,boxHeight,placed));
+
+        // salva posizione su Supabase
+        fetch("/idea/position", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({id:idea.id,x,y})
+        });
+      }
+      div.style.left = x + "px";
+      div.style.top = y + "px";
+      placed.push({x,y,width:div.offsetWidth,height:div.offsetHeight});
+    }
+
+    // Aggiorna solo dimensione font
+    const size = 14 + (freq[phrase]-minFreq)/(maxFreq-minFreq||1)*40;
+    div.style.fontSize = size + "px";
+  }
+}
+
+loadIdeas();
+setInterval(loadIdeas,5000);
+</script>
 </body>
 </html>
