@@ -41,6 +41,7 @@
       word-wrap: break-word;
       max-width: 300px;
       text-align: center;
+      transition: font-size 0.5s ease;
       animation: fadeIn 0.5s ease-in-out;
     }
     @keyframes fadeIn {
@@ -63,6 +64,9 @@
     const input = document.getElementById("idea-input");
     const container = document.getElementById("ideas-container");
 
+    // Memorizza posizione fissa per ogni frase
+    const positions = {};
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const content = input.value.trim();
@@ -82,16 +86,14 @@
       }
     });
 
-    // Funzione per costruire "frase cloud"
     async function loadIdeas() {
       const res = await fetch("/ideas");
       const data = await res.json();
-      container.innerHTML = "";
 
       const width = container.clientWidth;
       const height = container.clientHeight;
 
-      // Conta quante volte compare ciascuna frase
+      // Conta frequenze delle frasi
       const freq = {};
       data.ideas.forEach(idea => {
         const phrase = idea.content.trim();
@@ -103,26 +105,34 @@
       const phrases = Object.keys(freq);
       if (phrases.length === 0) return;
 
-      // Trova i limiti della frequenza
       const maxFreq = Math.max(...Object.values(freq));
       const minFreq = Math.min(...Object.values(freq));
 
       phrases.forEach(phrase => {
-        const div = document.createElement("div");
-        div.className = "idea";
-        div.textContent = phrase;
+        let div = document.getElementById("idea-" + phrase);
 
-        // Calcola dimensione font in base alla frequenza
+        if (!div) {
+          div = document.createElement("div");
+          div.className = "idea";
+          div.textContent = phrase;
+          div.id = "idea-" + phrase;
+
+          // Assegna posizione solo la prima volta
+          if (!positions[phrase]) {
+            const x = Math.random() * (width - 320);
+            const y = Math.random() * (height - 100);
+            positions[phrase] = { x, y };
+          }
+
+          div.style.left = `${positions[phrase].x}px`;
+          div.style.top = `${positions[phrase].y}px`;
+
+          container.appendChild(div);
+        }
+
+        // Aggiorna dimensione in base alla frequenza
         const size = 14 + (freq[phrase] - minFreq) / (maxFreq - minFreq || 1) * 40;
         div.style.fontSize = `${size}px`;
-
-        // Posizione random
-        const x = Math.random() * (width - 320);
-        const y = Math.random() * (height - 100);
-        div.style.left = `${x}px`;
-        div.style.top = `${y}px`;
-
-        container.appendChild(div);
       });
     }
 
