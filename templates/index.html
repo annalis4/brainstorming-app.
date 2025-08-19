@@ -8,24 +8,35 @@ body { font-family: Arial; margin:0; padding:0; background:#f9f9f9; overflow:hid
 h1 { text-align:center; margin-top:20px; }
 #idea-form { text-align:center; margin:20px; }
 #idea-input { width:400px; height:80px; padding:10px; font-size:16px; }
-#ideas-container { position:relative; width:100vw; height:80vh; overflow:hidden; }
+#actions { text-align:center; margin:10px; }
+#ideas-container { position:relative; width:100vw; height:75vh; overflow:hidden; }
 .idea { position:absolute; background:white; padding:6px 12px; border-radius:12px;
        box-shadow:0 4px 8px rgba(0,0,0,0.15); font-weight:bold; word-wrap:break-word;
        max-width:300px; text-align:center; transition:font-size 0.5s ease, left 0.3s ease, top 0.3s ease; }
+button { margin:5px; padding:8px 16px; font-size:16px; border:none; border-radius:8px;
+        background:#007bff; color:white; cursor:pointer; }
+button:hover { background:#0056b3; }
 </style>
 </head>
 <body>
 <h1>Brainstorming Cloud</h1>
+
 <form id="idea-form">
-<textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
-<button type="submit">Invia</button>
+  <textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
+  <button type="submit">Invia</button>
 </form>
+
+<div id="actions">
+  <button id="reset-btn" style="background:#dc3545;">Reset Lavagna</button>
+</div>
+
 <div id="ideas-container"></div>
 
 <script>
 const form = document.getElementById("idea-form");
 const input = document.getElementById("idea-input");
 const container = document.getElementById("ideas-container");
+const resetBtn = document.getElementById("reset-btn");
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -45,6 +56,14 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+// 🔹 Pulsante Reset
+resetBtn.addEventListener("click", async () => {
+  if (confirm("Vuoi davvero cancellare tutte le idee?")) {
+    await fetch("/reset", { method: "POST" });
+    container.innerHTML = ""; // pulisce subito la lavagna
+  }
+});
+
 function checkCollision(x, y, width, height, others){
   return others.some(p=>{
     return !(x+width < p.x || x > p.x+p.width || y+height < p.y || y > p.y+p.height);
@@ -61,8 +80,8 @@ async function loadIdeas(){
   const width = container.clientWidth;
   const height = container.clientHeight;
   const ideas = data.ideas;
-  const maxCount = Math.max(...ideas.map(i => i.count));
-  const minCount = Math.min(...ideas.map(i => i.count));
+  const maxCount = Math.max(...ideas.map(i => i.count), 1);
+  const minCount = Math.min(...ideas.map(i => i.count), 1);
 
   const placed = [];
   ideas.forEach(idea => {
@@ -96,21 +115,17 @@ async function loadIdeas(){
       div.style.top = y+"px";
     }
 
-    // 🔹 Calcolo dimensione proporzionale alle occorrenze
     const size = 14 + (idea.count-minCount)/(maxCount-minCount||1)*40;
     div.style.fontSize = size + "px";
 
-    // 🔹 Controllo dimensioni e collisioni
     let boxWidth = div.offsetWidth;
     let boxHeight = div.offsetHeight;
     let x = parseFloat(div.style.left);
     let y = parseFloat(div.style.top);
 
-    // Rimani nello schermo
     x = clamp(x, 0, width - boxWidth - 10);
     y = clamp(y, 0, height - boxHeight - 10);
 
-    // Evita sovrapposizioni ricontrollando con gli altri
     let tries=0;
     while(checkCollision(x,y,boxWidth,boxHeight,placed) && tries<500){
       x = clamp(x + (Math.random()*40 - 20), 0, width - boxWidth - 10);
