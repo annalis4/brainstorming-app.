@@ -64,7 +64,7 @@
     const input = document.getElementById("idea-input");
     const container = document.getElementById("ideas-container");
 
-    // Posizioni assegnate
+    // Posizioni assegnate una sola volta
     const positions = {};
 
     form.addEventListener("submit", async (e) => {
@@ -95,7 +95,6 @@
     async function loadIdeas() {
       const res = await fetch("/ideas");
       const data = await res.json();
-      container.innerHTML = "";
 
       const width = container.clientWidth;
       const height = container.clientHeight;
@@ -117,37 +116,44 @@
       const placed = [];
 
       phrases.forEach(phrase => {
-        let div = document.createElement("div");
-        div.className = "idea";
-        div.textContent = phrase;
-        div.id = "idea-" + phrase;
+        let div = document.getElementById("idea-" + phrase);
 
+        if (!div) {
+          div = document.createElement("div");
+          div.className = "idea";
+          div.textContent = phrase;
+          div.id = "idea-" + phrase;
+
+          container.appendChild(div);
+
+          const rect = div.getBoundingClientRect();
+          const boxWidth = rect.width || 100;
+          const boxHeight = rect.height || 40;
+
+          let x, y, tries = 0;
+          do {
+            x = Math.random() * (width - boxWidth - 20);
+            y = Math.random() * (height - boxHeight - 20);
+            tries++;
+            if (tries > 1000) break;
+          } while (checkCollision(x, y, boxWidth, boxHeight, placed));
+
+          positions[phrase] = { x, y, width: boxWidth, height: boxHeight };
+
+          div.style.left = `${x}px`;
+          div.style.top = `${y}px`;
+
+          placed.push({ x, y, width: boxWidth, height: boxHeight });
+        }
+
+        // Aggiorna solo la dimensione del font (non la posizione!)
         const size = 14 + (freq[phrase] - minFreq) / (maxFreq - minFreq || 1) * 40;
         div.style.fontSize = `${size}px`;
-
-        container.appendChild(div);
-
-        const rect = div.getBoundingClientRect();
-        const boxWidth = rect.width;
-        const boxHeight = rect.height;
-
-        let x, y, tries = 0;
-        do {
-          x = Math.random() * (width - boxWidth - 20);
-          y = Math.random() * (height - boxHeight - 20);
-          tries++;
-          if (tries > 1000) break; // evita loop infinito
-        } while (checkCollision(x, y, boxWidth, boxHeight, placed));
-
-        div.style.left = `${x}px`;
-        div.style.top = `${y}px`;
-
-        placed.push({ x, y, width: boxWidth, height: boxHeight });
       });
     }
 
     loadIdeas();
-    setInterval(loadIdeas, 5000);
+    setInterval(loadIdeas, 5000); // aggiorna ogni 5s
   </script>
 </body>
 </html>
