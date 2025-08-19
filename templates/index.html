@@ -11,7 +11,7 @@ h1 { text-align:center; margin-top:20px; }
 #ideas-container { position:relative; width:100vw; height:80vh; overflow:hidden; }
 .idea { position:absolute; background:white; padding:6px 12px; border-radius:12px;
        box-shadow:0 4px 8px rgba(0,0,0,0.15); font-weight:bold; word-wrap:break-word;
-       max-width:300px; text-align:center; transition:font-size 0.5s ease; }
+       max-width:300px; text-align:center; transition:font-size 0.5s ease, left 0.3s ease, top 0.3s ease; }
 </style>
 </head>
 <body>
@@ -45,10 +45,14 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-function checkCollision(x, y, width, height, placed){
-  return placed.some(p=>{
+function checkCollision(x, y, width, height, others){
+  return others.some(p=>{
     return !(x+width < p.x || x > p.x+p.width || y+height < p.y || y > p.y+p.height);
   });
+}
+
+function clamp(val, min, max){
+  return Math.min(Math.max(val, min), max);
 }
 
 async function loadIdeas(){
@@ -81,6 +85,7 @@ async function loadIdeas(){
           tries++;
           if(tries>2000) break;
         } while(checkCollision(x,y,boxWidth,boxHeight,placed));
+        // salva posizione su supabase
         fetch("/idea/position", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
@@ -91,10 +96,32 @@ async function loadIdeas(){
       div.style.top = y+"px";
     }
 
+    // 🔹 Calcolo dimensione proporzionale alle occorrenze
     const size = 14 + (idea.count-minCount)/(maxCount-minCount||1)*40;
     div.style.fontSize = size + "px";
-    placed.push({x:parseFloat(div.style.left),y:parseFloat(div.style.top),
-                 width:div.offsetWidth,height:div.offsetHeight});
+
+    // 🔹 Controllo dimensioni e collisioni
+    let boxWidth = div.offsetWidth;
+    let boxHeight = div.offsetHeight;
+    let x = parseFloat(div.style.left);
+    let y = parseFloat(div.style.top);
+
+    // Rimani nello schermo
+    x = clamp(x, 0, width - boxWidth - 10);
+    y = clamp(y, 0, height - boxHeight - 10);
+
+    // Evita sovrapposizioni ricontrollando con gli altri
+    let tries=0;
+    while(checkCollision(x,y,boxWidth,boxHeight,placed) && tries<500){
+      x = clamp(x + (Math.random()*40 - 20), 0, width - boxWidth - 10);
+      y = clamp(y + (Math.random()*40 - 20), 0, height - boxHeight - 10);
+      tries++;
+    }
+
+    div.style.left = x+"px";
+    div.style.top = y+"px";
+
+    placed.push({x,y,width:boxWidth,height:boxHeight});
   });
 }
 
