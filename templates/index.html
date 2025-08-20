@@ -1,147 +1,129 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<title>Brainstorming Cloud Globale</title>
-<style>
-body { font-family: Arial; margin:0; padding:0; background:#f9f9f9; overflow:hidden; }
-h1 { text-align:center; margin-top:20px; }
-#idea-form { text-align:center; margin:20px; }
-#idea-input { width:400px; height:80px; padding:10px; font-size:16px; }
-#actions { text-align:center; margin:10px; }
-#ideas-container { position:relative; width:100vw; height:75vh; overflow:hidden; }
-.idea { position:absolute; background:white; padding:6px 12px; border-radius:12px;
-       box-shadow:0 4px 8px rgba(0,0,0,0.15); font-weight:bold; word-wrap:break-word;
-       max-width:300px; text-align:center; transition:font-size 0.5s ease, left 0.3s ease, top 0.3s ease; }
-button { margin:5px; padding:8px 16px; font-size:16px; border:none; border-radius:8px;
-        background:#007bff; color:white; cursor:pointer; }
-button:hover { background:#0056b3; }
-</style>
+  <meta charset="UTF-8">
+  <title>Brainstorming App</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #ideas { margin-top: 20px; }
+    .idea { margin: 5px 0; }
+  </style>
 </head>
 <body>
-<h1>Brainstorming Cloud</h1>
+  <h1>Brainstorming App</h1>
 
-<form id="idea-form">
-  <textarea id="idea-input" placeholder="Scrivi la tua idea senza limiti..."></textarea><br>
-  <button type="submit">Invia</button>
-</form>
+  <h2>Profilo</h2>
+  <div id="auth">
+    <input type="text" id="username" placeholder="Username">
+    <button id="register">Registrati</button>
+    <button id="login">Login</button>
+    <button id="logout" style="display:none;">Logout</button>
+  </div>
 
-<div id="actions">
-  <button id="reset-btn" style="background:#dc3545;">Reset Lavagna</button>
-</div>
+  <h2>Nuova Idea</h2>
+  <input type="text" id="ideaInput" placeholder="Scrivi la tua idea...">
+  <button id="submitIdea">Invia</button>
+  <button id="reset">Reset Lavagna</button>
 
-<div id="ideas-container"></div>
+  <h2>Idee</h2>
+  <div id="ideas"></div>
 
-<script>
-const form = document.getElementById("idea-form");
-const input = document.getElementById("idea-input");
-const container = document.getElementById("ideas-container");
-const resetBtn = document.getElementById("reset-btn");
+  <script>
+    const registerBtn = document.getElementById("register");
+    const loginBtn = document.getElementById("login");
+    const logoutBtn = document.getElementById("logout");
+    const usernameInput = document.getElementById("username");
+    const submitIdeaBtn = document.getElementById("submitIdea");
+    const ideaInput = document.getElementById("ideaInput");
+    const ideasDiv = document.getElementById("ideas");
+    const resetBtn = document.getElementById("reset");
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const content = input.value.trim();
-  if (!content) return;
-  const res = await fetch("/idea", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content })
-  });
-  const data = await res.json();
-  if (data.status === "ok") {
-    input.value = "";
-    loadIdeas();
-  } else {
-    alert(data.message);
-  }
-});
+    // Carica idee
+    async function loadIdeas() {
+      const res = await fetch("/ideas");
+      const data = await res.json();
+      ideasDiv.innerHTML = "";
+      data.ideas.forEach(idea => {
+        const el = document.createElement("div");
+        el.className = "idea";
+        el.textContent = `${idea.content} (by ${idea.username || "anonimo"})`;
+        ideasDiv.appendChild(el);
+      });
+    }
 
-// 🔹 Pulsante Reset
-resetBtn.addEventListener("click", async () => {
-  if (confirm("Vuoi davvero cancellare tutte le idee?")) {
-    await fetch("/reset", { method: "POST" });
-    container.innerHTML = ""; // pulisce subito la lavagna
-  }
-});
-
-function checkCollision(x, y, width, height, others){
-  return others.some(p=>{
-    return !(x+width < p.x || x > p.x+p.width || y+height < p.y || y > p.y+p.height);
-  });
-}
-
-function clamp(val, min, max){
-  return Math.min(Math.max(val, min), max);
-}
-
-async function loadIdeas(){
-  const res = await fetch("/ideas");
-  const data = await res.json();
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-  const ideas = data.ideas;
-  const maxCount = Math.max(...ideas.map(i => i.count), 1);
-  const minCount = Math.min(...ideas.map(i => i.count), 1);
-
-  const placed = [];
-  ideas.forEach(idea => {
-    let div = document.getElementById("idea-" + idea.id);
-    if (!div){
-      div = document.createElement("div");
-      div.className = "idea";
-      div.textContent = idea.content;
-      div.id = "idea-" + idea.id;
-      container.appendChild(div);
-
-      let x = idea.pos_x, y = idea.pos_y;
-      if (x===null || y===null){
-        let boxWidth = div.offsetWidth || 100;
-        let boxHeight = div.offsetHeight || 40;
-        let tries=0;
-        do{
-          x = Math.random() * (width - boxWidth - 20);
-          y = Math.random() * (height - boxHeight - 20);
-          tries++;
-          if(tries>2000) break;
-        } while(checkCollision(x,y,boxWidth,boxHeight,placed));
-        // salva posizione su supabase
-        fetch("/idea/position", {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({id:idea.id,x,y})
-        });
+    // Registrazione
+    registerBtn.addEventListener("click", async () => {
+      const username = usernameInput.value.trim();
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username})
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        alert("Registrato come " + data.user.username);
+        logoutBtn.style.display = "inline";
+      } else {
+        alert(data.message);
       }
-      div.style.left = x+"px";
-      div.style.top = y+"px";
-    }
+    });
 
-    const size = 14 + (idea.count-minCount)/(maxCount-minCount||1)*40;
-    div.style.fontSize = size + "px";
+    // Login
+    loginBtn.addEventListener("click", async () => {
+      const username = usernameInput.value.trim();
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username})
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        alert("Bentornato " + data.user.username);
+        logoutBtn.style.display = "inline";
+      } else {
+        alert(data.message);
+      }
+    });
 
-    let boxWidth = div.offsetWidth;
-    let boxHeight = div.offsetHeight;
-    let x = parseFloat(div.style.left);
-    let y = parseFloat(div.style.top);
+    // Logout
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/logout", {method:"POST"});
+      alert("Logout effettuato");
+      logoutBtn.style.display = "none";
+    });
 
-    x = clamp(x, 0, width - boxWidth - 10);
-    y = clamp(y, 0, height - boxHeight - 10);
+    // Invia idea
+    submitIdeaBtn.addEventListener("click", async () => {
+      const content = ideaInput.value.trim();
+      if (!content) return;
+      const res = await fetch("/idea", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({content})
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        ideaInput.value = "";
+        loadIdeas();
+      } else {
+        alert(data.message);
+      }
+    });
 
-    let tries=0;
-    while(checkCollision(x,y,boxWidth,boxHeight,placed) && tries<500){
-      x = clamp(x + (Math.random()*40 - 20), 0, width - boxWidth - 10);
-      y = clamp(y + (Math.random()*40 - 20), 0, height - boxHeight - 10);
-      tries++;
-    }
+    // Reset lavagna
+    resetBtn.addEventListener("click", async () => {
+      if (confirm("Vuoi davvero cancellare tutte le idee?")) {
+        const res = await fetch("/reset", { method: "POST" });
+        const data = await res.json();
+        if (data.status === "ok") {
+          loadIdeas();
+        } else {
+          alert("Errore reset: " + data.message);
+        }
+      }
+    });
 
-    div.style.left = x+"px";
-    div.style.top = y+"px";
-
-    placed.push({x,y,width:boxWidth,height:boxHeight});
-  });
-}
-
-loadIdeas();
-setInterval(loadIdeas, 5000);
-</script>
+    loadIdeas();
+  </script>
 </body>
 </html>
