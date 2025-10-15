@@ -27,7 +27,7 @@ def register():
     if existing.data:
         return jsonify({"status": "error", "message": "Username già registrato"}), 400
 
-      res = supabase.table("profiles").insert({"username": username, "is_admin": is_admin}).execute()
+res = supabase.table("profiles").insert({"username": username, "is_admin": is_admin}).execute()
     user = res.data[0]
     session["user"] = user
     return jsonify({"status": "ok", "user": user})
