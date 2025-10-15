@@ -2,83 +2,129 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Lavagna di Brainstorming</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; }
-    h1 { color: #333; }
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    button:hover { background: #0056b3; }
-    ul { list-style: none; padding: 0; }
-    li {
-      background: white;
-      margin: 6px 0;
-      padding: 12px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-<body>
-  <h1>💡 Lavagna di Brainstorming</h1>
-
-  <form id="ideaForm">
-    <textarea id="content" rows="3" placeholder="Scrivi la tua idea qui..." required></textarea><br>
-    <button type="submit">Invia</button>
-
-    {% if user and user.is_admin %}
-      <button type="button" id="resetBtn" style="background:#dc3545;">Reset</button>
-    {% endif %}
-  </form>
-
-  <h2>Idee raccolte:</h2>
-  <ul id="ideasList"></ul>
-
+  <title>Lavagna Idee</title>
   <script>
-    async function loadIdeas() {
-      const res = await fetch("/ideas");
-      const data = await res.json();
-      const list = document.getElementById("ideasList");
-      list.innerHTML = "";
-      data.ideas.forEach(i => {
-        const li = document.createElement("li");
-        li.textContent = i.content;
-        list.appendChild(li);
+    let currentUser = null;
+
+    async function register() {
+      const username = document.getElementById("reg-username").value;
+      const isAdmin = document.getElementById("reg-admin").checked;
+
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username, is_admin: isAdmin})
       });
+      const data = await res.json();
+      if(data.status === "ok") {
+        currentUser = data.user;
+        alert("Registrazione completata!");
+        updateUI();
+      } else {
+        alert(data.message);
+      }
     }
 
-    document.getElementById("ideaForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const content = document.getElementById("content").value;
-      await fetch("/idea", {
+    async function login() {
+      const username = document.getElementById("login-username").value;
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username})
+      });
+      const data = await res.json();
+      if(data.status === "ok") {
+        currentUser = data.user;
+        alert("Login effettuato!");
+        updateUI();
+      } else {
+        alert(data.message);
+      }
+    }
+
+    async function logout() {
+      await fetch("/logout", {method: "POST"});
+      currentUser = null;
+      updateUI();
+    }
+
+    async function addIdea() {
+      const content = document.getElementById("idea-content").value;
+      const res = await fetch("/idea", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({content})
       });
-      document.getElementById("content").value = "";
-      loadIdeas();
-    };
-
-    {% if user and user.is_admin %}
-    document.getElementById("resetBtn").onclick = async () => {
-      if (confirm("Sei sicuro di voler cancellare tutte le idee?")) {
-        const res = await fetch("/reset", { method: "POST" });
-        const data = await res.json();
+      const data = await res.json();
+      if(data.status === "ok") {
+        alert("Idea aggiunta!");
+        document.getElementById("idea-content").value = "";
+        listIdeas();
+      } else {
         alert(data.message);
-        loadIdeas();
       }
-    };
-    {% endif %}
+    }
 
-    loadIdeas();
+    async function listIdeas() {
+      const res = await fetch("/ideas");
+      const data = await res.json();
+      const container = document.getElementById("ideas-list");
+      container.innerHTML = "";
+      data.ideas.forEach(i => {
+        const div = document.createElement("div");
+        div.textContent = `${i.username}: ${i.content}`;
+        container.appendChild(div);
+      });
+    }
+
+    async function resetLavagna() {
+      if(!confirm("Sei sicuro di voler resettare la lavagna?")) return;
+      const res = await fetch("/reset", {method: "POST"});
+      const data = await res.json();
+      alert(data.message);
+      listIdeas();
+    }
+
+    function updateUI() {
+      document.getElementById("user-info").textContent = currentUser ? `Loggato come: ${currentUser.username} ${currentUser.is_admin ? "(Admin)" : ""}` : "Non loggato";
+      document.getElementById("login-section").style.display = currentUser ? "none" : "block";
+      document.getElementById("register-section").style.display = currentUser ? "none" : "block";
+      document.getElementById("idea-section").style.display = currentUser ? "block" : "none";
+      document.getElementById("logout-btn").style.display = currentUser ? "block" : "none";
+      document.getElementById("reset-btn").style.display = currentUser && currentUser.is_admin ? "block" : "none";
+      listIdeas();
+    }
+
+    window.onload = updateUI;
   </script>
+</head>
+<body>
+  <h1>Lavagna Idee</h1>
+  <div id="user-info"></div>
+
+  <div id="register-section">
+    <h3>Registrazione</h3>
+    <input type="text" id="reg-username" placeholder="Username">
+    <label><input type="checkbox" id="reg-admin"> Admin</label>
+    <button onclick="register()">Registrati</button>
+  </div>
+
+  <div id="login-section">
+    <h3>Login</h3>
+    <input type="text" id="login-username" placeholder="Username">
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="idea-section" style="display:none;">
+    <h3>Aggiungi idea</h3>
+    <input type="text" id="idea-content" placeholder="Scrivi la tua idea">
+    <button onclick="addIdea()">Aggiungi</button>
+  </div>
+
+  <button id="reset-btn" style="display:none;" onclick="resetLavagna()">Reset Lavagna (Admin)</button>
+  <button id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+
+  <h3>Idee</h3>
+  <div id="ideas-list"></div>
 </body>
 </html>
