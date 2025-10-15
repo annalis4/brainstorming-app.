@@ -71,9 +71,13 @@ def list_ideas():
         idea["username"] = users.get(idea["user_id"], "Anonimo")
     return jsonify({"ideas": ideas})
 
-# 🔹 Nuova rotta per cancellare tutte le idee
+
+# 🔹 Solo un admin può resettare la lavagna
 @app.route("/reset", methods=["POST"])
 def reset():
+    user = session.get("user")
+    if not user or not user.get("is_admin"):
+        return jsonify({"status": "error", "message": "Non sei autorizzato a resettare la lavagna"}), 403
     try:
         # Chiama la funzione SQL creata nel Supabase SQL Editor
         supabase.rpc("reset_ideas").execute()
