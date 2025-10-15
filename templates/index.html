@@ -33,7 +33,10 @@
   <form id="ideaForm">
     <textarea id="content" rows="3" placeholder="Scrivi la tua idea qui..." required></textarea><br>
     <button type="submit">Invia</button>
-    <button type="button" id="resetBtn" style="background:#dc3545;">Reset</button>
+
+    {% if user and user.is_admin %}
+      <button type="button" id="resetBtn" style="background:#dc3545;">Reset</button>
+    {% endif %}
   </form>
 
   <h2>Idee raccolte:</h2>
@@ -64,13 +67,16 @@
       loadIdeas();
     };
 
-    // 🔹 Bottone Reset
+    {% if user and user.is_admin %}
     document.getElementById("resetBtn").onclick = async () => {
       if (confirm("Sei sicuro di voler cancellare tutte le idee?")) {
-        await fetch("/reset", { method: "POST" });
+        const res = await fetch("/reset", { method: "POST" });
+        const data = await res.json();
+        alert(data.message);
         loadIdeas();
       }
     };
+    {% endif %}
 
     loadIdeas();
   </script>
