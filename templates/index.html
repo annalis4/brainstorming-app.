@@ -2,126 +2,75 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Brainstorming App</title>
+  <title>Lavagna di Brainstorming</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #ideas { margin-top: 20px; }
-    .idea { margin: 5px 0; }
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; }
+    h1 { color: #333; }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    button:hover { background: #0056b3; }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: white;
+      margin: 6px 0;
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
-  <h1>Brainstorming App</h1>
+  <h1>💡 Lavagna di Brainstorming</h1>
 
-  <h2>Profilo</h2>
-  <div id="auth">
-    <input type="text" id="username" placeholder="Username">
-    <button id="register">Registrati</button>
-    <button id="login">Login</button>
-    <button id="logout" style="display:none;">Logout</button>
-  </div>
+  <form id="ideaForm">
+    <textarea id="content" rows="3" placeholder="Scrivi la tua idea qui..." required></textarea><br>
+    <button type="submit">Invia</button>
+    <button type="button" id="resetBtn" style="background:#dc3545;">Reset</button>
+  </form>
 
-  <h2>Nuova Idea</h2>
-  <input type="text" id="ideaInput" placeholder="Scrivi la tua idea...">
-  <button id="submitIdea">Invia</button>
-  <button id="reset">Reset Lavagna</button>
-
-  <h2>Idee</h2>
-  <div id="ideas"></div>
+  <h2>Idee raccolte:</h2>
+  <ul id="ideasList"></ul>
 
   <script>
-    const registerBtn = document.getElementById("register");
-    const loginBtn = document.getElementById("login");
-    const logoutBtn = document.getElementById("logout");
-    const usernameInput = document.getElementById("username");
-    const submitIdeaBtn = document.getElementById("submitIdea");
-    const ideaInput = document.getElementById("ideaInput");
-    const ideasDiv = document.getElementById("ideas");
-    const resetBtn = document.getElementById("reset");
-
-    // Carica idee
     async function loadIdeas() {
       const res = await fetch("/ideas");
       const data = await res.json();
-      ideasDiv.innerHTML = "";
-      data.ideas.forEach(idea => {
-        const el = document.createElement("div");
-        el.className = "idea";
-        el.textContent = `${idea.content} (by ${idea.username || "anonimo"})`;
-        ideasDiv.appendChild(el);
+      const list = document.getElementById("ideasList");
+      list.innerHTML = "";
+      data.ideas.forEach(i => {
+        const li = document.createElement("li");
+        li.textContent = i.content;
+        list.appendChild(li);
       });
     }
 
-    // Registrazione
-    registerBtn.addEventListener("click", async () => {
-      const username = usernameInput.value.trim();
-      const res = await fetch("/register", {
+    document.getElementById("ideaForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const content = document.getElementById("content").value;
+      await fetch("/idea", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username})
-      });
-      const data = await res.json();
-      if (data.status === "ok") {
-        alert("Registrato come " + data.user.username);
-        logoutBtn.style.display = "inline";
-      } else {
-        alert(data.message);
-      }
-    });
-
-    // Login
-    loginBtn.addEventListener("click", async () => {
-      const username = usernameInput.value.trim();
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username})
-      });
-      const data = await res.json();
-      if (data.status === "ok") {
-        alert("Bentornato " + data.user.username);
-        logoutBtn.style.display = "inline";
-      } else {
-        alert(data.message);
-      }
-    });
-
-    // Logout
-    logoutBtn.addEventListener("click", async () => {
-      await fetch("/logout", {method:"POST"});
-      alert("Logout effettuato");
-      logoutBtn.style.display = "none";
-    });
-
-    // Invia idea
-    submitIdeaBtn.addEventListener("click", async () => {
-      const content = ideaInput.value.trim();
-      if (!content) return;
-      const res = await fetch("/idea", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({content})
       });
-      const data = await res.json();
-      if (data.status === "ok") {
-        ideaInput.value = "";
-        loadIdeas();
-      } else {
-        alert(data.message);
-      }
-    });
+      document.getElementById("content").value = "";
+      loadIdeas();
+    };
 
-    // Reset lavagna
-    resetBtn.addEventListener("click", async () => {
-      if (confirm("Vuoi davvero cancellare tutte le idee?")) {
-        const res = await fetch("/reset", { method: "POST" });
-        const data = await res.json();
-        if (data.status === "ok") {
-          loadIdeas();
-        } else {
-          alert("Errore reset: " + data.message);
-        }
+    // 🔹 Bottone Reset
+    document.getElementById("resetBtn").onclick = async () => {
+      if (confirm("Sei sicuro di voler cancellare tutte le idee?")) {
+        await fetch("/reset", { method: "POST" });
+        loadIdeas();
       }
-    });
+    };
 
     loadIdeas();
   </script>
