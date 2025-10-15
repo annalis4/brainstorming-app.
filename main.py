@@ -71,13 +71,18 @@ def list_ideas():
         idea["username"] = users.get(idea["user_id"], "Anonimo")
     return jsonify({"ideas": ideas})
 
+# 🔹 Nuova rotta per cancellare tutte le idee
 @app.route("/reset", methods=["POST"])
 def reset():
     try:
-        res = supabase.table("ideas").delete().neq("id", -1).execute()
-        return jsonify({"status": "ok", "deleted": len(res.data)})
+        # Chiama la funzione SQL creata nel Supabase SQL Editor
+        supabase.rpc("reset_ideas").execute()
+        return jsonify({"status": "ok", "message": "Lavagna resettata con successo"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
