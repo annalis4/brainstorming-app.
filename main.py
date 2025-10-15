@@ -10,6 +10,13 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://cmqiuyqpzcdwgqgkgmdc.supabase.
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcWl1eXFwemNkd2dxZ2tnbWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MjAyNDgsImV4cCI6MjA3MTA5NjI0OH0.JyqSexwA9INcc3HjNemLUhveCQzY-AAplD8YHACkZP0")
 supabase: Client = create_client(SUPABASE_KEY, SUPABASE_KEY)
 
+def create_default_admin():
+    res = supabase.table("profiles").select("*").eq("username", "admin").execute()
+    if not res.data:
+        supabase.table("profiles").insert({"username": "admin", "is_admin": True}).execute()
+
+create_default_admin()
+
 @app.route("/")
 def index():
     user = session.get("user")
@@ -19,7 +26,8 @@ def index():
 def register():
     data = request.get_json()
     username = data.get("username", "").strip()
-    is_admin = data.get("is_admin", False)  # se vuoi creare admin manualmente
+    is_admin = data.get("is_admin", False)
+
     if not username:
         return jsonify({"status": "error", "message": "Username obbligatorio"}), 400
 
@@ -27,7 +35,7 @@ def register():
     if existing.data:
         return jsonify({"status": "error", "message": "Username già registrato"}), 400
 
-res = supabase.table("profiles").insert({"username": username, "is_admin": is_admin}).execute()
+    res = supabase.table("profiles").insert({"username": username, "is_admin": is_admin}).execute()
     user = res.data[0]
     session["user"] = user
     return jsonify({"status": "ok", "user": user})
@@ -72,15 +80,12 @@ def list_ideas():
         idea["username"] = users.get(idea["user_id"], "Anonimo")
     return jsonify({"ideas": ideas})
 
-
-# 🔹 Solo un admin può resettare la lavagna
 @app.route("/reset", methods=["POST"])
 def reset():
     user = session.get("user")
-    if not user or not user.get("is_admin"):
+    if not user or not user.get("is_admin", False):
         return jsonify({"status": "error", "message": "Non sei autorizzato a resettare la lavagna"}), 403
     try:
-        # Chiama la funzione SQL creata nel Supabase SQL Editor
         supabase.rpc("reset_ideas").execute()
         return jsonify({"status": "ok", "message": "Lavagna resettata con successo"})
     except Exception as e:
