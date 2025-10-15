@@ -19,6 +19,7 @@ def index():
 def register():
     data = request.get_json()
     username = data.get("username", "").strip()
+    is_admin = data.get("is_admin", False)  # se vuoi creare admin manualmente
     if not username:
         return jsonify({"status": "error", "message": "Username obbligatorio"}), 400
 
@@ -26,7 +27,7 @@ def register():
     if existing.data:
         return jsonify({"status": "error", "message": "Username già registrato"}), 400
 
-    res = supabase.table("profiles").insert({"username": username}).execute()
+      res = supabase.table("profiles").insert({"username": username, "is_admin": is_admin}).execute()
     user = res.data[0]
     session["user"] = user
     return jsonify({"status": "ok", "user": user})
