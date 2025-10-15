@@ -6,6 +6,7 @@
   <script>
     let currentUser = null;
 
+    // Registrazione
     async function register() {
       const username = document.getElementById("reg-username").value;
       const isAdmin = document.getElementById("reg-admin").checked;
@@ -25,6 +26,7 @@
       }
     }
 
+    // Login
     async function login() {
       const username = document.getElementById("login-username").value;
       const res = await fetch("/login", {
@@ -42,12 +44,14 @@
       }
     }
 
+    // Logout
     async function logout() {
       await fetch("/logout", {method: "POST"});
       currentUser = null;
       updateUI();
     }
 
+    // Aggiungi idea
     async function addIdea() {
       const content = document.getElementById("idea-content").value;
       const res = await fetch("/idea", {
@@ -57,7 +61,6 @@
       });
       const data = await res.json();
       if(data.status === "ok") {
-        alert("Idea aggiunta!");
         document.getElementById("idea-content").value = "";
         listIdeas();
       } else {
@@ -65,6 +68,7 @@
       }
     }
 
+    // Lista idee
     async function listIdeas() {
       const res = await fetch("/ideas");
       const data = await res.json();
@@ -77,6 +81,7 @@
       });
     }
 
+    // Reset lavagna (solo admin)
     async function resetLavagna() {
       if(!confirm("Sei sicuro di voler resettare la lavagna?")) return;
       const res = await fetch("/reset", {method: "POST"});
@@ -85,6 +90,7 @@
       listIdeas();
     }
 
+    // Aggiorna UI
     function updateUI() {
       document.getElementById("user-info").textContent = currentUser ? `Loggato come: ${currentUser.username} ${currentUser.is_admin ? "(Admin)" : ""}` : "Non loggato";
       document.getElementById("login-section").style.display = currentUser ? "none" : "block";
@@ -102,6 +108,7 @@
   <h1>Lavagna Idee</h1>
   <div id="user-info"></div>
 
+  <!-- Registrazione -->
   <div id="register-section">
     <h3>Registrazione</h3>
     <input type="text" id="reg-username" placeholder="Username">
@@ -109,19 +116,24 @@
     <button onclick="register()">Registrati</button>
   </div>
 
+  <!-- Login -->
   <div id="login-section">
     <h3>Login</h3>
     <input type="text" id="login-username" placeholder="Username">
     <button onclick="login()">Login</button>
   </div>
 
+  <!-- Aggiungi idea -->
   <div id="idea-section" style="display:none;">
     <h3>Aggiungi idea</h3>
     <input type="text" id="idea-content" placeholder="Scrivi la tua idea">
     <button onclick="addIdea()">Aggiungi</button>
   </div>
 
+  <!-- Pulsante Reset Lavagna (solo admin) -->
   <button id="reset-btn" style="display:none;" onclick="resetLavagna()">Reset Lavagna (Admin)</button>
+
+  <!-- Logout -->
   <button id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
 
   <h3>Idee</h3>
